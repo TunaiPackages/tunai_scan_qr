@@ -1,0 +1,20 @@
+name: tunai_scan_qr
+description: "A new Flutter package project."
+version: 0.0.1
+homepage: hehe
+
+environment:
+  sdk: ^3.5.4
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  mobile_scanner: ^6.0.2
+  image_picker: ^0.8.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
