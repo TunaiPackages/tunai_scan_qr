@@ -1,7 +1,7 @@
 name: tunai_scan_qr
 description: "A new Flutter package project."
 version: 0.0.1
-homepage: hehe
+homepage: https://github.com/TunaiPackages/tunai_scan_qr.git
 
 environment:
   sdk: ^3.5.4
