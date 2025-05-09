@@ -13,11 +13,13 @@ class TunaiScanQrScreen extends StatefulWidget {
     BuildContext context,
     void Function() onPressed,
   ) buttBuilder;
+  final bool scanFromGallery;
   const TunaiScanQrScreen({
     super.key,
     required this.onScanned,
     required this.buttBuilder,
     this.appBar,
+    this.scanFromGallery = true,
   });
 
   @override
@@ -107,33 +109,36 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen>
               painter: ScanWindowOverlayPainter(),
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: max(MediaQuery.of(context).padding.bottom, 20),
-            child: Center(
-              child: widget.buttBuilder.call(
-                context,
-                () async {
-                  ImagePicker picker = ImagePicker();
+          if (widget.scanFromGallery)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: max(MediaQuery.of(context).padding.bottom, 20),
+              child: Center(
+                child: widget.buttBuilder.call(
+                  context,
+                  () async {
+                    ImagePicker picker = ImagePicker();
 
-                  var img = await picker.pickImage(source: ImageSource.gallery);
-                  if (img != null) {
-                    String imagePath = img.path;
+                    var img =
+                        await picker.pickImage(source: ImageSource.gallery);
+                    if (img != null) {
+                      String imagePath = img.path;
 
-                    if (imagePath.isNotEmpty) {
-                      final barcode = await _controller.analyzeImage(imagePath);
-                      if (barcode != null) {
-                        _handleBarcode(barcode);
+                      if (imagePath.isNotEmpty) {
+                        final barcode =
+                            await _controller.analyzeImage(imagePath);
+                        if (barcode != null) {
+                          _handleBarcode(barcode);
+                        }
+                      } else {
+                        return null;
                       }
-                    } else {
-                      return null;
                     }
-                  }
-                },
+                  },
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
