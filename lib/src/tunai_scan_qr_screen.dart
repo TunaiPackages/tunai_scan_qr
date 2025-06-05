@@ -26,24 +26,21 @@ class TunaiScanQrScreen extends StatefulWidget {
   State<TunaiScanQrScreen> createState() => _TunaiScanQrScreenState();
 }
 
-class _TunaiScanQrScreenState extends State<TunaiScanQrScreen>
-    with WidgetsBindingObserver {
+class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
   BarcodeCapture? _barcodeCaptures;
 
-  final MobileScannerController _controller = MobileScannerController(
-    autoStart: false,
-    detectionTimeoutMs: 1000,
-  );
+  final MobileScannerController _controller =
+      MobileScannerController(detectionTimeoutMs: 1000, autoStart: false
+          // cameraResolution: Size(1920, 1080),
+          );
   StreamSubscription<Object?>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    _controller.start();
 
     _subscription = _controller.barcodes.listen(_handleBarcode);
-
-    unawaited(_controller.start());
   }
 
   void _handleBarcode(BarcodeCapture barcodes) {
@@ -59,33 +56,11 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen>
 
   @override
   void dispose() async {
-    WidgetsBinding.instance.removeObserver(this);
     unawaited(_subscription?.cancel());
     _subscription = null;
+    _controller.stop();
     super.dispose();
     await _controller.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_controller.value.hasCameraPermission) {
-      return;
-    }
-
-    switch (state) {
-      case AppLifecycleState.detached:
-      case AppLifecycleState.hidden:
-      case AppLifecycleState.paused:
-        return;
-      case AppLifecycleState.resumed:
-        _subscription = _controller.barcodes.listen(_handleBarcode);
-
-        unawaited(_controller.start());
-      case AppLifecycleState.inactive:
-        unawaited(_subscription?.cancel());
-        _subscription = null;
-        unawaited(_controller.stop());
-    }
   }
 
   @override
@@ -98,15 +73,28 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen>
           MobileScanner(
             controller: _controller,
             onDetect: _handleBarcode,
-            errorBuilder: (p0, p1, p2) {
-              return Center(
-                child: Text('Error: $p0'),
+            errorBuilder: (context, e) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Failed to open camera, please check your camera permission',
+                    style: TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               );
             },
           ),
           SizedBox.expand(
-            child: CustomPaint(
-              painter: ScanWindowOverlayPainter(),
+            child: GestureDetector(
+              onTap: () async {
+                await _controller.stop();
+                await _controller.start();
+              },
+              child: CustomPaint(
+                painter: ScanWindowOverlayPainter(),
+              ),
             ),
           ),
           if (widget.scanFromGallery)

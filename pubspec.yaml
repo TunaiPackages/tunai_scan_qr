@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  mobile_scanner: ^6.0.2
+  mobile_scanner: ^7.0.1
   image_picker: ^1.1.2
 
 dev_dependencies:
