@@ -6,20 +6,42 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+Future<void> showScanQr(
+  BuildContext context, {
+  required void Function(BarcodeCapture barcodeCapture) onScanned,
+  void Function(Object error)? onError,
+  PreferredSizeWidget? appBar,
+  Widget Function(BuildContext context, void Function() onPressed)? buttBuilder,
+  bool scanFromGallery = true,
+}) {
+  return showModalBottomSheet(
+    context: context,
+    builder: (context) => TunaiScanQrScreen(
+      onScanned: onScanned,
+      onError: onError,
+      appBar: appBar,
+      buttBuilder: buttBuilder,
+      scanFromGallery: scanFromGallery,
+    ),
+  );
+}
+
 class TunaiScanQrScreen extends StatefulWidget {
   final PreferredSizeWidget? appBar;
   final void Function(BarcodeCapture barcodeCapture) onScanned;
   final Widget Function(
     BuildContext context,
     void Function() onPressed,
-  ) buttBuilder;
+  )? buttBuilder;
   final bool scanFromGallery;
+  final void Function(Object error)? onError;
   const TunaiScanQrScreen({
     super.key,
     required this.onScanned,
     required this.buttBuilder,
     this.appBar,
     this.scanFromGallery = true,
+    this.onError,
   });
 
   @override
@@ -29,18 +51,27 @@ class TunaiScanQrScreen extends StatefulWidget {
 class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
   BarcodeCapture? _barcodeCaptures;
 
-  final MobileScannerController _controller =
-      MobileScannerController(detectionTimeoutMs: 1000, autoStart: false
-          // cameraResolution: Size(1920, 1080),
-          );
+  final MobileScannerController _controller = MobileScannerController(
+    detectionTimeoutMs: 1000,
+    autoStart: false,
+  );
   StreamSubscription<Object?>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _controller.start();
+
+    startController();
 
     _subscription = _controller.barcodes.listen(_handleBarcode);
+  }
+
+  void startController() async {
+    try {
+      await _controller.start();
+    } catch (e) {
+      widget.onError?.call(e);
+    }
   }
 
   void _handleBarcode(BarcodeCapture barcodes) {
@@ -67,34 +98,117 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: widget.appBar,
-      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: _handleBarcode,
-            errorBuilder: (context, e) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Failed to open camera, please check your camera permission',
-                    style: TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              );
+          GestureDetector(
+            onTap: () {
+              startController();
             },
-          ),
-          SizedBox.expand(
-            child: GestureDetector(
-              onTap: () async {
-                await _controller.stop();
-                await _controller.start();
+            child: MobileScanner(
+              controller: _controller,
+              onDetect: _handleBarcode,
+              onDetectError: (error, stackTrace) {
+                widget.onError?.call(error);
               },
-              child: CustomPaint(
-                painter: ScanWindowOverlayPainter(),
-              ),
+              overlayBuilder: (context, constraints) {
+                return Stack(
+                  children: [
+                    Center(
+                      child: SizedBox(
+                        width: constraints.maxWidth * 0.7,
+                        height: constraints.maxHeight * 0.3,
+                        child: Stack(
+                          children: [
+                            // Corner indicators
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(
+                                        color: Colors.white, width: 3),
+                                    left: BorderSide(
+                                        color: Colors.white, width: 3),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(
+                                        color: Colors.white, width: 3),
+                                    right: BorderSide(
+                                        color: Colors.white, width: 3),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                        color: Colors.white, width: 3),
+                                    left: BorderSide(
+                                        color: Colors.white, width: 3),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                        color: Colors.white, width: 3),
+                                    right: BorderSide(
+                                        color: Colors.white, width: 3),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              placeholderBuilder: (context) {
+                return const Center(
+                  child: CupertinoActivityIndicator(),
+                );
+              },
+              errorBuilder: (context, e) {
+                widget.onError?.call(e);
+                return const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Failed to open camera, please check your camera permission',
+                      style: TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           if (widget.scanFromGallery)
@@ -103,7 +217,7 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
               right: 0,
               bottom: max(MediaQuery.of(context).padding.bottom, 20),
               child: Center(
-                child: widget.buttBuilder.call(
+                child: widget.buttBuilder?.call(
                   context,
                   () async {
                     ImagePicker picker = ImagePicker();
@@ -131,94 +245,4 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
       ),
     );
   }
-}
-
-class ScanWindowOverlayPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Paint for dark edges
-    final Paint paint = Paint()
-      ..color = Colors.transparent
-      ..style = PaintingStyle.fill;
-
-    // Define the center rectangle for the scan window
-    double scanWindowWidth = size.width * 0.6; // Customize width
-    double scanWindowHeight = size.height * 0.25; // Customize height
-    double scanWindowLeft = (size.width - scanWindowWidth) / 2;
-    double scanWindowTop = (size.height - scanWindowHeight) / 2;
-
-    // Draw the darkened edges around the transparent center
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-
-    // Create transparent center area (scan window)
-    paint.color = Colors.transparent; // Transparent center
-    canvas.drawRect(
-        Rect.fromLTWH(
-            scanWindowLeft, scanWindowTop, scanWindowWidth, scanWindowHeight),
-        paint);
-
-    // Paint for the corner lines (white)
-    final cornerPaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    // Draw the corner lines at the four corners
-    double cornerSize = 20.0; // Size of the corner lines
-
-    // Top-left corner
-    canvas.drawLine(
-      Offset(scanWindowLeft, scanWindowTop),
-      Offset(scanWindowLeft + cornerSize, scanWindowTop),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanWindowLeft, scanWindowTop),
-      Offset(scanWindowLeft, scanWindowTop + cornerSize),
-      cornerPaint,
-    );
-
-    // Top-right corner
-    canvas.drawLine(
-      Offset(scanWindowLeft + scanWindowWidth, scanWindowTop),
-      Offset(scanWindowLeft + scanWindowWidth - cornerSize, scanWindowTop),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanWindowLeft + scanWindowWidth, scanWindowTop),
-      Offset(scanWindowLeft + scanWindowWidth, scanWindowTop + cornerSize),
-      cornerPaint,
-    );
-
-    // Bottom-left corner
-    canvas.drawLine(
-      Offset(scanWindowLeft, scanWindowTop + scanWindowHeight),
-      Offset(scanWindowLeft + cornerSize, scanWindowTop + scanWindowHeight),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanWindowLeft, scanWindowTop + scanWindowHeight),
-      Offset(scanWindowLeft, scanWindowTop + scanWindowHeight - cornerSize),
-      cornerPaint,
-    );
-
-    // Bottom-right corner
-    canvas.drawLine(
-      Offset(
-          scanWindowLeft + scanWindowWidth, scanWindowTop + scanWindowHeight),
-      Offset(scanWindowLeft + scanWindowWidth - cornerSize,
-          scanWindowTop + scanWindowHeight),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(
-          scanWindowLeft + scanWindowWidth, scanWindowTop + scanWindowHeight),
-      Offset(scanWindowLeft + scanWindowWidth,
-          scanWindowTop + scanWindowHeight - cornerSize),
-      cornerPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
