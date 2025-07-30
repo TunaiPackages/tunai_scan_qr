@@ -16,6 +16,7 @@ Future<void> showScanQr(
 }) {
   return showModalBottomSheet(
     context: context,
+    isScrollControlled: true,
     builder: (context) => TunaiScanQrScreen(
       onScanned: onScanned,
       onError: onError,
