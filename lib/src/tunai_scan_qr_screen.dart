@@ -24,6 +24,7 @@ Future<void> showScanQr(
         topRight: Radius.circular(20),
       ),
     ),
+    clipBehavior: Clip.antiAlias,
     builder: (context) => TunaiScanQrScreen(
       onScanned: onScanned,
       onError: onError,
