@@ -18,6 +18,12 @@ Future<void> showScanQr(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(20),
+        topRight: Radius.circular(20),
+      ),
+    ),
     builder: (context) => TunaiScanQrScreen(
       onScanned: onScanned,
       onError: onError,
