@@ -13,16 +13,14 @@ Future<void> showScanQr(
   PreferredSizeWidget? appBar,
   Widget Function(BuildContext context, void Function() onPressed)? buttBuilder,
   bool scanFromGallery = true,
+  BorderRadius? borderRadius,
 }) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(20),
-        topRight: Radius.circular(20),
-      ),
+    shape: RoundedRectangleBorder(
+      borderRadius: borderRadius ?? BorderRadius.zero,
     ),
     clipBehavior: Clip.antiAlias,
     builder: (context) => TunaiScanQrScreen(
