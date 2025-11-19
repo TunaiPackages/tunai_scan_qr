@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 Future<void> showScanQr(
   BuildContext context, {
@@ -55,7 +56,8 @@ class TunaiScanQrScreen extends StatefulWidget {
   State<TunaiScanQrScreen> createState() => _TunaiScanQrScreenState();
 }
 
-class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
+class _TunaiScanQrScreenState extends State<TunaiScanQrScreen>
+    with WidgetsBindingObserver {
   BarcodeCapture? _barcodeCaptures;
 
   final MobileScannerController _controller = MobileScannerController(
@@ -67,10 +69,19 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     startController();
 
     _subscription = _controller.barcodes.listen(_handleBarcode);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      startController();
+    }
   }
 
   void startController() async {
@@ -94,6 +105,7 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
 
   @override
   void dispose() async {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_subscription?.cancel());
     _subscription = null;
     _controller.stop();
@@ -105,7 +117,9 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: widget.appBar,
+      backgroundColor: Colors.black,
       body: Stack(
+        fit: StackFit.expand,
         children: [
           GestureDetector(
             onTap: () {
@@ -205,14 +219,29 @@ class _TunaiScanQrScreenState extends State<TunaiScanQrScreen> {
               },
               errorBuilder: (context, e) {
                 widget.onError?.call(e);
-                return const Column(
+                final MobileScannerException exception = e;
+                bool isPermissionDenied = exception.errorCode ==
+                    MobileScannerErrorCode.permissionDenied;
+                return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'Failed to open camera, please check your camera permission',
-                      style: TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
+                    if (isPermissionDenied) ...[
+                      Text(
+                        'Please check your camera permission',
+                        style: TextStyle(color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          try {
+                            await openAppSettings();
+                          } catch (e) {}
+                        },
+                        child: const Text(
+                          'Request Permission',
+                        ),
+                      )
+                    ],
                   ],
                 );
               },
